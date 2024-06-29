@@ -1,0 +1,25 @@
+---
+- name: Configuring timezone
+  hosts: all
+  become: true
+  roles: 
+    - role: ntpd
+
+- name: Installing and configuring NGINX
+  hosts: web
+  become: true
+  roles:
+    - role: nginx 
+
+- name: Configuring Log Collection Server
+  hosts: log
+  become: true
+  roles:
+    - role: log
+
+- name: Configuring ELK server
+  hosts: elk
+  become: true
+  roles:
+    - role: elk
+...

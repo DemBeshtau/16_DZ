@@ -1,0 +1,95 @@
+- name: Installing nginx and audispd-plugin packages
+  yum: 
+    pkg: "{{ item }}" 
+    state: present 
+    update_cache: yes
+  with_items:
+    - epel-release
+    - nano
+    - nginx
+    - audispd-plugins
+  when: inventory_hostname == "web"  
+
+- name: Adding config to nginx
+  copy: 
+    src: "{{ item.src }}"
+    dest: "{{ item.dst }}" 
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - { src: "nginx.conf", dst: "/etc/nginx/nginx.conf" } 
+  notify:
+    - nginx reload
+  when: inventory_hostname == "web"  
+  
+- name: Starting nginx
+  systemd:
+    name: nginx
+    enabled: yes
+    state: started
+  when: inventory_hostname == "web"  
+
+- name: Configuring rsyslog service - editing rsyslog.conf
+  blockinfile:
+    path: /etc/rsyslog.conf
+    block: |
+      *.* @@192.168.56.15:514
+  notify:
+    - rsyslog restart
+  when: inventory_hostname == "web"
+
+- name: Adding rules in auditd.rules
+  blockinfile:
+    path: /etc/audit/rules.d/audit.rules
+    block: |
+      -w /etc/nginx/nginx.conf -p wa -k nginx_cfg
+      -w /etc/nginx/default.d/ -p wa -k nginx_cfg
+      -w /etc/nginx/conf.d/ -p wa -k nginx_cfg
+  notify:
+    - auditd restart
+  when: inventory_hostname == "web"  
+
+- name: Configuring audit - editing auditd.conf
+  lineinfile:
+    path: /etc/audit/auditd.conf
+    regexp: "{{ item.reg }}"
+    line: "{{ item.line }}"
+  with_items:
+    - { reg: '^log_format =', line: 'log_format = RAW'}
+    - { reg: '^name_format =', line: 'name_format = HOSTNAME'}
+  notify:
+    - auditd restart
+  when: inventory_hostname == "web"  
+
+- name: Activating plugin audisp - editing au-remote.conf
+  lineinfile:
+    path: /etc/audisp/plugins.d/au-remote.conf
+    regexp: '^active ='
+    line: active = yes
+  notify:
+    - auditd restart
+  when: inventory_hostname == "web"  
+
+- name: Configuring audit web transmission to logserver
+  lineinfile:
+    path: /etc/audisp/audisp-remote.conf
+    regexp: "{{ item.reg }}"
+    line: "{{ item.line }}"
+  with_items:
+    - { reg: '^remote_server =', line: "remote_server = 192.168.56.15"}
+    - { reg: '^port =', line: 'port = 60'}
+  notify:
+    - auditd restart
+  when: inventory_hostname == "web"  
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,13 @@
+- name: nginx reload
+  systemd:
+    name: nginx
+    state: reloaded
+
+- name: rsyslog restart
+  systemd:
+    name: rsyslog
+    state: restarted
+    
+- name: auditd restart
+  command: /sbin/service auditd condrestart
+  

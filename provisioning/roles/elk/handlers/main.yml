@@ -1,0 +1,19 @@
+- name: filebeat reload
+  systemd:
+    name: filebeat
+    state: restarted
+
+- name: logstash reload
+  systemd:
+    name: logstash
+    state: restarted
+
+- name: elasticsearch reload
+  systemd:
+    name: elasticsearch
+    state: restarted     
+ 
+- name: rsyslog restart
+  systemd:
+    name: rsyslog
+    state: restarted

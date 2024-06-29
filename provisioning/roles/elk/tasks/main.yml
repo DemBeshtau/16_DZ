@@ -1,0 +1,148 @@
+- name: Configuring rsyslog service - editing rsyslog.conf
+  lineinfile:
+    path: /etc/rsyslog.conf
+    regexp: "{{ item.reg }}"
+    line: "{{ item.line }}"
+  loop:
+    - { reg: '^#\$ModLoad imudp', line: '$ModLoad imudp' }
+    - { reg: '^#\$UDPServerRun 514', line: '$UDPServerRun 514' }
+    - { reg: '^#\$ModLoad imtcp', line: '$ModLoad imtcp' }
+    - { reg: '^#\$InputTCPServerRun 514', line: '$InputTCPServerRun 514' }
+  notify:
+    - rsyslog restart
+  when: inventory_hostname == "elk"
+
+- name: Configuring rsyslog service - editing rsyslog.conf
+  blockinfile:
+    path: /etc/rsyslog.conf
+    block: |
+      $template RemoteLogs,"/var/log/rsyslog/%HOSTNAME%/%PROGRAMNAME%.log"
+      *.* ?RemoteLogs
+      & stop
+  notify:
+    - rsyslog restart
+  when: inventory_hostname == "elk"
+
+- name: Installing java
+  yum: 
+    name: java-11-openjdk
+    state: present
+    update_cache: true
+  when: inventory_hostname == "elk"
+
+- name: Copying filebeat packet 
+  copy:
+    src: filebeat-8.14.1-x86_64.rpm
+    dest: /tmp/filebeat-8.14.1-x86_64.rpm
+  when: inventory_hostname == "elk"
+
+- name: Installing filebeat service
+  yum:
+    name: /tmp/filebeat-8.14.1-x86_64.rpm
+    state: present
+  when: inventory_hostname == "elk"
+
+- name: Configuring filebeat service
+  copy:
+    src: filebeat.yml
+    dest: /etc/filebeat/filebeat.yml
+    owner: root
+    group: root
+    mode: 0644
+  when: inventory_hostname == "elk"
+
+- name: Starting filebeat service
+  systemd:
+    name: filebeat
+    enabled: yes
+    state: started
+  when: inventory_hostname == "elk"
+
+- name: Copying logstash packet
+  copy:
+    src: logstash-8.14.1-x86_64.rpm
+    dest: /tmp/logstash-8.14.1-x86_64.rpm
+  when: inventory_hostname == "elk"
+
+- name: Installing logstash service
+  yum:
+    name: /tmp/logstash-8.14.1-x86_64.rpm
+    state: present
+  when: inventory_hostname == "elk"
+
+- name: Configuring logstash service
+  copy:  
+    src: "{{ item.src }}"
+    dest: "{{ item.dst }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - { src: "logstash.yml", dst: "/etc/logstash/logstash.yml" }  
+    - { src: "logstash-nginx-es.conf", dst: "/etc/logstash/conf.d/logstash-nginx-es.conf" }
+  when: inventory_hostname == "elk"
+
+- name: Starting logstash service
+  systemd:
+    name: logstash
+    enabled: yes
+    state: started
+  when: inventory_hostname == "elk"
+
+- name: Copying elasticsearch packet
+  copy:
+    src: elasticsearch-8.14.1-x86_64.rpm
+    dest: /tmp/elasticsearch-8.14.1-x86_64.rpm
+  when: inventory_hostname == "elk"
+- name: Installing elasticsearch service
+  yum:
+    name: /tmp/elasticsearch-8.14.1-x86_64.rpm
+    state: present
+  when: inventory_hostname == "elk"
+
+- name: Configuring elasticsearch service
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dst }}"
+    owner: root
+    group: elasticsearch
+    mode: 0644
+  with_items:
+    - { src: "elasticsearch.yml", dst: "/etc/elasticsearch/elasticsearch.yml" }  
+    - { src: "jvm.options", dst: "/etc/elasticsearch/jvm.options" }  
+  when: inventory_hostname == "elk"
+
+- name: Starting elasticsearch service
+  systemd:
+    name: elasticsearch
+    enabled: yes
+    state: started
+  when: inventory_hostname == "elk"
+
+- name: Copying kibana packet
+  copy:
+    src: kibana-8.14.1-x86_64.rpm
+    dest: /tmp/kibana-8.14.1-x86_64.rpm
+  when: inventory_hostname == "elk"
+
+- name: Installing kibana service
+  yum:
+    name: /tmp/kibana-8.14.1-x86_64.rpm
+    state: present
+  when: inventory_hostname == "elk"
+
+- name: Configuring kibana service
+  copy:
+    src: kibana.yml
+    dest: /etc/kibana/kibana.yml
+    owner: root
+    group: kibana
+    mode: 0644
+  when: inventory_hostname == "elk"
+
+- name: Starting kibana service
+  systemd:
+    name: kibana
+    enabled: yes
+    state: started
+  when: inventory_hostname == "elk"  

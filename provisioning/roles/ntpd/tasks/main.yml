@@ -1,0 +1,5 @@
+---
+- name: set timezone Europe/Moscow
+  timezone:
+    name: Europe/Moscow
+...

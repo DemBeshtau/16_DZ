@@ -1,0 +1,5 @@
+[srv]
+web ansible_host=192.168.56.10
+log ansible_host=192.168.56.15
+elk ansible_host=192.168.56.11
+
